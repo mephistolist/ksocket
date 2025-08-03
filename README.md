@@ -7,9 +7,9 @@ The ksocket API has been updated to incorporate the changes related to the [iov_
 
 ### Getting started
 ```
-$ git clone https://github.com/hbagdi/ksocket.git
+$ git clone https://github.com/mephistolist/ksocket.git
 $ cd ksocket/src
-$ make # make sure you have the kernel headers/tree installed
+$ make # make sure you have the kernel headers/tree installed first
 $ sudo insmod ksocket.ko
 #now you can use the exported symbols from this kernel module
 ```
