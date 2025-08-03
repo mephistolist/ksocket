@@ -11,8 +11,11 @@
  * @2017
  * Hardik Bagdi (hbagdi1@binghamton.edu)
  * Changes for Compatibility with Linux 4.9 to use iov_iter
+ *
+ * @2025
+ * Mephistolist (cloneozone@gmail.com)
+ * Changes for kernels 5.11 through at least 6.16. 
  */
-
 #ifndef _ksocket_h_
 #define _ksocket_h_
 
