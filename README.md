@@ -15,10 +15,8 @@ $ sudo insmod ksocket.ko
 ```
 
 ### Support across kernel versions
-The original ksocket work was to support Linux 2.6, however support for v5.4.0 has been
-included.
-
-This version of ksocket was designed for kernels 5.11-6.16. It may work in verions beyond 6.16, but we do not know what future kernel versions will entail. If you need this for an older kernel, see the links below:
+The original ksocket work was to support Linux 2.6, however support for v5.4.0 was later 
+included. This version of ksocket was designed for kernels 5.11-6.16. It may work in verions beyond 6.16, but we do not know what future kernel versions will entail. If you need this for an older kernel, see the links below:
 
 #### v2.6 original development
 https://github.com/hbagdi/ksocket
