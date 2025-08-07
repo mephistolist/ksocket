@@ -1,4 +1,3 @@
-# 
 # ksocket project
 # BSD-style socket APIs for kernel 2.6 developers
 # 
