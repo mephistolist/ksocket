@@ -11,23 +11,34 @@
 # @2017
 # Hardik Bagdi (hbagdi1@binghamton.edu)
 # Changes for Compatibility with Linux 4.9 to use iov_iter
+#
+# @2025
+# Mephistolist (cloneozone@gmail.com)
+# Updated for kernels 5.11-6.16
+#
+KBUILD_EXTRA_SYMBOLS := ../../src/Module.symvers
 
-.PHONY: default clean
+obj-m := tcp_server.o
 
-obj-m := ksocket_tcp_srv_demo.o ksocket_tcp_cli_demo.o
-#ksocket_tcp_srv-objs := ../ksocket.o
-KDIR  := /lib/modules/$(shell uname -r)/build
-PWD   := $(shell pwd)
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
 
-EXTRA_LDFLAGS := -I../../src
+EXTRA_CFLAGS += -I$(PWD)
 
-ifeq ($(ADDRSAFE),true)
-	EXTRA_CFLAGS += -DKSOCKET_ADDR_SAFE
-endif
+# Name of the userland binary
+USER_BINARY := tcp_client
+USER_SOURCE := tcp_client.c
 
-default:
+default: modules user
+
+# Build the kernel module
+modules:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
-clean:
-	rm -rf *.ko *.o *.mod.* .H* .tm* .*cmd Module.symvers modules.order
+# Build the userland binary
+user:
+	gcc $(USER_SOURCE) -o $(USER_BINARY)
 
+# Clean both kernel module and userland binary
+clean:
+	rm -rf *.o *.ko *.mod.* *.symvers *.order .*cmd $(USER_BINARY)
