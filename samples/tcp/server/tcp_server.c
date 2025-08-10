@@ -161,4 +161,4 @@ module_exit(tcp_server_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Mephistolist");
-MODULE_DESCRIPTION("Kernel-space TCP server");
+MODULE_DESCRIPTION("Kernel-space TCP server using ksocket");
