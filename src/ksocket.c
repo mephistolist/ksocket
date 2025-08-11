@@ -91,65 +91,49 @@ int kconnect(ksocket_t socket, struct sockaddr *address, int address_len) {
 }
 
 ksocket_t kaccept(ksocket_t socket, struct sockaddr *address, int *address_len) {
-	struct socket *sk;
-	struct socket *new_sk = NULL;
-	int ret;
-	
-	sk = (struct socket *)socket;
+    struct socket *sk = (struct socket *)socket;
+    struct socket *new_sk = NULL;
+    int ret;
 
-	printk("family = %d, type = %d, protocol = %d\n",
-					sk->sk->sk_family, sk->type, sk->sk->sk_protocol);
-	//new_sk = sock_alloc();
-	//sock_alloc() is not exported, so i use sock_create() instead
-	ret = sock_create(sk->sk->sk_family, sk->type, sk->sk->sk_protocol, &new_sk);
-	if (ret < 0) {
-		return NULL;
-	}
-	if (!new_sk) {
-		return NULL;
-	}
-	
-	new_sk->type = sk->type;
-	new_sk->ops = sk->ops;
-	
-	ret = sk->ops->accept(sk, new_sk, 0 /*sk->file->f_flags*/);
-	if (ret < 0) {
-		goto error_kaccept;
-	}
+    printk("family = %d, type = %d, protocol = %d\n",
+           sk->sk->sk_family, sk->type, sk->sk->sk_protocol);
 
-	if (address) {
-    		ret = new_sk->ops->getname(new_sk, address, 1); 
-    		if (ret < 0) {
-        		goto error_kaccept;
-		}
-	}
+    // Create a new socket
+    ret = sock_create(sk->sk->sk_family, sk->type, sk->sk->sk_protocol, &new_sk);
+    if (ret < 0 || !new_sk)
+        return NULL;
 
-	
-	return new_sk;
+    new_sk->type = sk->type;
+    new_sk->ops = sk->ops;
 
-error_kaccept:
-	sock_release(new_sk);
-	return NULL;
+    // Accept connection
+    ret = sk->ops->accept(sk, new_sk, 0 /*sk->file->f_flags*/);
+    if (ret < 0) {
+        sock_release(new_sk);
+        return NULL;
+    }
+
+    // Retrieve peer address if requested
+    if (address) {
+        ret = new_sk->ops->getname(new_sk, address, 1);
+        if (ret < 0) {
+            sock_release(new_sk);
+            return NULL;
+        }
+    }
+
+    return new_sk;
 }
 
 ssize_t krecv(ksocket_t socket, void *buffer, size_t length, int flags) {
-	struct socket *sk;
-	struct msghdr msg = { 0 };
-	struct kvec iov;
-	int ret;
+    struct socket *sk = (struct socket *)socket;
+    struct msghdr msg = { 0 };
+    struct kvec iov;
 
-	sk = (struct socket *)socket;
+    iov.iov_base = buffer;
+    iov.iov_len = length;
 
-	iov.iov_base = buffer;
-	iov.iov_len = length;
-
-	ret = kernel_recvmsg(sk, &msg, &iov, 1, length, flags);
-	if (ret < 0) {
-		goto out_krecv;
-	}
-
-out_krecv:
-	return ret;
+    return kernel_recvmsg(sk, &msg, &iov, 1, length, flags);
 }
 
 ssize_t ksend(ksocket_t socket, const void *buffer, size_t length, int flags) {
