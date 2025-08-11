@@ -48,5 +48,8 @@ https://github.com/hbagdi/ksocket/tree/linux-5.4.0
 - Feel free to open Pull-Requests here for any enhancements/fixes.
 - Open an issue in the repository for any help or bugs. Make sure to mention Kernel version.
 
+### Stream-lining
+If you wish to not have to load the ksocket module, or link its symbols in Makefiles you can statically ksocket when building a kernel from source.
+
 ### Contact
 For this version of kscoket you may reach out to cloneozone@gmail.com.
