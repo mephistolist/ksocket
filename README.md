@@ -1,10 +1,6 @@
 # ksocket API  
 
-BSD-style socket API in kernel space for TCP/IP networking on Linux kernels 5.11-6.16.
-
-Original ksocket for v2.6 was published at [http://ksocket.sourceforge.net/](http://ksocket.sourceforge.net/).
-This repository contains changes to make it compatible with new kernel versions.
-The ksocket API has been updated to incorporate the changes related to the [iov_iter](https://lwn.net/Articles/625077/) interface introduced in kernel v3.19+.
+A BSD-style socket API in kernel space for TCP/IP networking on Linux kernels 5.11-6.16. This is not backwards compatible with older kernels, but links will be provided to those later in this documentation. 
 
 ### Getting started
 ```
