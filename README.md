@@ -53,4 +53,4 @@ https://github.com/hbagdi/ksocket/tree/linux-5.4.0
 - Open an issue in the repository for any help or bugs. Make sure to mention Kernel version.
 
 ### Contact
-For this version you may reach out to cloneozone@gmail.com.
+For this version of kscoket you may reach out to cloneozone@gmail.com.
