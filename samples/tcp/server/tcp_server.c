@@ -42,13 +42,17 @@ static int tcp_server_thread(void *data) {
     ret = kernel_bind(listen_sock, (struct sockaddr *)&addr, sizeof(addr));
     if (ret) {
         pr_err("tcp_server: kernel_bind failed: %d\n", ret);
-        goto out_release_listen;
+        sock_release(listen_sock);
+        listen_sock = NULL;
+        return ret;
     }
 
     ret = kernel_listen(listen_sock, BACKLOG);
     if (ret) {
         pr_err("tcp_server: kernel_listen failed: %d\n", ret);
-        goto out_release_listen;
+        sock_release(listen_sock);
+        listen_sock = NULL;
+        return ret;
     }
 
     pr_info("tcp_server: listening on port %d\n", SERVER_PORT);
@@ -109,9 +113,8 @@ static int tcp_server_thread(void *data) {
         newsock = NULL;
     }
 
-out_release_listen:
+    /* cleanup listening socket */
     if (listen_sock) {
-        /* release listening socket */
         pr_info("tcp_server: closing listen socket %p\n", listen_sock);
         sock_release(listen_sock);
         listen_sock = NULL;
