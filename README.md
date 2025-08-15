@@ -46,10 +46,23 @@ https://github.com/hbagdi/ksocket/tree/linux-5.4.0
 
 ### Contributing/Reporting Bugs
 - Feel free to open Pull-Requests here for any enhancements/fixes.
-- Open an issue in the repository for any help or bugs. Make sure to mention Kernel version.
+- Open an issue in the repository for any help or bugs. Make sure to mention Kernel version. 
 
 ### Stream-lining
-If you wish to not have to load the ksocket module, or link its symbols in Makefiles you can statically link ksocket when building a kernel from source.
+If you wish to not have to load the ksocket module, or link its symbols in Makefiles you can statically link ksocket when building a kernel from source. Considering we have kernel 6.16, and this ksocket project in /home/user/ksocket, we can do something like the following:
 
+```
+# export VERSION=6.16
+# mkdir /usr/src/linux-$VERSION/drivers/ksocket
+# rsync -avP /home/user/ksocket/ /usr/src/linux-$VERSION/drivers/ksocket/
+# sed -i '$ s/^endmenu$/source "drivers/ksocket/Kconfig"\nendmenu/' /usr/src/linux-$VERSION/drivers/Kconfig
+# echo 'config KSOCKET' > /usr/src/linux-$VERSION/drivers/ksocket/Kconfig
+# echo '    bool "Kernel Socket API helper"' >> /usr/src/linux-$VERSION/drivers/ksocket/Kconfig
+# echo '    help' >> /usr/src/linux-$VERSION/drivers/ksocket/Kconfig
+# echo '      Provides a simple kernel-space TCP/UDP socket API wrapper.' >> /usr/src/linux-$VERSION/drivers/ksocket/Kconfig
+# echo '      Needed for your custom kernel networking code.'
+```
+If you proceed with then building and loading your kernel, you will not have to build or insert the ksocket module as it will already be in the kernel. You will also no longer need this line in your Makefiles to use or call this API:
+``` KBUILD_EXTRA_SYMBOLS := ../../../src/Module.symvers ```
 ### Contact
 For this version of kscoket you may reach out to cloneozone@gmail.com.
