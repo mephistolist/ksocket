@@ -1,0 +1,5 @@
+config KSOCKET
+    bool "Kernel Socket API helper"
+    help
+      Provides a simple kernel-space TCP/UDP socket API wrapper.
+      Needed for your custom kernel networking code.
