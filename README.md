@@ -58,6 +58,8 @@ If you wish to not have to load the ksocket module, or link its symbols in Makef
 # sed -i '$ s/^endmenu$/source "drivers/ksocket/Kconfig"\nendmenu/' /usr/src/linux-$VERSION/drivers/Kconfig
 ```
 If you proceed with then building and loading your kernel, you will not have to build or insert the ksocket module as it will already be in the kernel. You will also no longer need this line in your Makefiles to use or call this API:
-``` KBUILD_EXTRA_SYMBOLS := ../../../src/Module.symvers ```
+``` 
+KBUILD_EXTRA_SYMBOLS := ../../../src/Module.symvers
+```
 ### Contact
 For this version of kscoket you may reach out to cloneozone@gmail.com.
