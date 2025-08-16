@@ -56,11 +56,6 @@ If you wish to not have to load the ksocket module, or link its symbols in Makef
 # mkdir /usr/src/linux-$VERSION/drivers/ksocket
 # rsync -avP /home/user/ksocket/ /usr/src/linux-$VERSION/drivers/ksocket/
 # sed -i '$ s/^endmenu$/source "drivers/ksocket/Kconfig"\nendmenu/' /usr/src/linux-$VERSION/drivers/Kconfig
-# echo 'config KSOCKET' > /usr/src/linux-$VERSION/drivers/ksocket/Kconfig
-# echo '    bool "Kernel Socket API helper"' >> /usr/src/linux-$VERSION/drivers/ksocket/Kconfig
-# echo '    help' >> /usr/src/linux-$VERSION/drivers/ksocket/Kconfig
-# echo '      Provides a simple kernel-space TCP/UDP socket API wrapper.' >> /usr/src/linux-$VERSION/drivers/ksocket/Kconfig
-# echo '      Needed for your custom kernel networking code.'
 ```
 If you proceed with then building and loading your kernel, you will not have to build or insert the ksocket module as it will already be in the kernel. You will also no longer need this line in your Makefiles to use or call this API:
 ``` KBUILD_EXTRA_SYMBOLS := ../../../src/Module.symvers ```
