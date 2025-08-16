@@ -49,7 +49,7 @@ https://github.com/hbagdi/ksocket/tree/linux-5.4.0
 - Open an issue in the repository for any help or bugs. Make sure to mention Kernel version. 
 
 ### Stream-lining
-If you wish to not have to load the ksocket module, or link its symbols in Makefiles you can statically link ksocket when building a kernel from source. Considering we have kernel 6.16, and this ksocket project in /home/user/ksocket, we can do something like the following:
+If you wish to not have to load the ksocket module, or link its symbols in Makefiles you can statically link ksocket when building a kernel from source. Considering we have kernel 6.16 inside /usr/src and this ksocket project in /home/user/ksocket, we can do something like the following:
 
 ```
 # export VERSION=6.16
