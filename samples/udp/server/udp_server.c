@@ -4,20 +4,21 @@
 #include <linux/kthread.h>
 #include <linux/delay.h>
 #include <linux/in.h>
-#include <linux/net.h>
 #include <linux/string.h>
-#include <linux/slab.h>
+#include <linux/net.h>      
+#include <linux/socket.h>  
 #include "ksocket.h"
 
 int udp_server_fn(void *data);
+
 static struct task_struct *server_thread;
 
 int udp_server_fn(void *data) {
     struct socket *sock;
-    struct sockaddr_in addr;
-    int ret;
+    struct sockaddr_in addr, src_addr;
+    int ret, len;
     char buffer[256];
-    
+
     sock = ksocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (!sock) {
         printk(KERN_ERR "UDP Server: Failed to create socket\n");
@@ -39,22 +40,20 @@ int udp_server_fn(void *data) {
     printk(KERN_INFO "UDP Server: Listening on port 4444\n");
 
     while (!kthread_should_stop()) {
-        struct sockaddr_in src_addr;
-        int len = sizeof(src_addr);
-
         memset(buffer, 0, sizeof(buffer));
+        len = sizeof(src_addr);
+
         ret = krecvfrom(sock, buffer, sizeof(buffer) - 1, 0,
                         (struct sockaddr *)&src_addr, &len);
         if (ret > 0) {
             buffer[ret] = '\0';
             printk(KERN_INFO "UDP Server: Received '%s'\n", buffer);
 
-            // Send back acknowledgement
-            const char *reply = "ACK from UDP Server";
-	   ksendto(sock, (void *)reply, strlen(reply), 0,
-	       (struct sockaddr *)&src_addr, sizeof(src_addr));
+            ksendto(sock, "ACK from UDP Server", 19, 0,
+                    (struct sockaddr *)&src_addr, sizeof(src_addr));
         }
-        msleep(100);
+
+        msleep(100); // this isn’t in your API, but it’s fine
     }
 
     kclose(sock);
@@ -80,5 +79,5 @@ module_init(udp_server_init);
 module_exit(udp_server_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Simple UDP Server Example with ACK");
+MODULE_DESCRIPTION("Simple UDP Server Example using ksocket API");
 MODULE_AUTHOR("Mephistolist");
