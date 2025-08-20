@@ -5,118 +5,114 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/err.h>
-#include <linux/net.h>
 #include <linux/in.h>
-#include <linux/socket.h>
-#include <net/sock.h>
-#include <linux/uio.h>
+#include <linux/net.h>      /* socket families, SOCK_STREAM */
+#include <linux/socket.h>   /* socket options */
+#include "ksocket.h"   /* <-- your wrapper API */
 
 #define SERVER_PORT 12345
 #define BACKLOG     5
 #define RECV_BUF_SZ 1024
 
 static struct task_struct *server_thread;
-static struct socket *listen_sock;
+static ksocket_t listen_sock = NULL;
 
 static int tcp_server_thread(void *data) {
-    struct socket *newsock = NULL;
     struct sockaddr_in addr;
+    int addrlen = sizeof(addr);
     int ret;
 
-    pr_info("tcp_server: thread starting\n");
+    pr_info("tcp_server: thread starting (ksocket API)\n");
 
-    /* Create kernel socket properly for kernel context */
-    ret = sock_create_kern(&init_net, AF_INET, SOCK_STREAM, IPPROTO_TCP, &listen_sock);
-    if (ret) {
-        pr_err("tcp_server: sock_create_kern failed: %d\n", ret);
+    /* Create listening socket via ksocket() */
+    listen_sock = ksocket(AF_INET, SOCK_STREAM, 0);
+    if (IS_ERR(listen_sock)) {
+        long err = PTR_ERR(listen_sock);
+        pr_err("tcp_server: ksocket() failed: %ld\n", err);
         listen_sock = NULL;
-        return ret;
+        return (int)err;
     }
-    pr_debug("tcp_server: created listen_sock=%p\n", listen_sock);
+
+    /* (Optional) allow immediate port reuse */
+    {
+        int optval = 1;
+        ksetsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR,
+                    (void *)&optval, sizeof(optval));
+    }
 
     memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
+    addr.sin_family      = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(SERVER_PORT);
+    addr.sin_port        = htons(SERVER_PORT);
 
-    ret = kernel_bind(listen_sock, (struct sockaddr *)&addr, sizeof(addr));
-    if (ret) {
-        pr_err("tcp_server: kernel_bind failed: %d\n", ret);
-        sock_release(listen_sock);
+    ret = kbind(listen_sock, (struct sockaddr *)&addr, addrlen);
+    if (ret < 0) {
+        pr_err("tcp_server: kbind() failed: %d\n", ret);
+        kclose(listen_sock);
         listen_sock = NULL;
         return ret;
     }
 
-    ret = kernel_listen(listen_sock, BACKLOG);
-    if (ret) {
-        pr_err("tcp_server: kernel_listen failed: %d\n", ret);
-        sock_release(listen_sock);
+    ret = klisten(listen_sock, BACKLOG);
+    if (ret < 0) {
+        pr_err("tcp_server: klisten() failed: %d\n", ret);
+        kclose(listen_sock);
         listen_sock = NULL;
         return ret;
     }
 
     pr_info("tcp_server: listening on port %d\n", SERVER_PORT);
 
-    /* main accept loop (will exit when thread asked to stop) */
+    /* Accept loop */
     while (!kthread_should_stop()) {
-        /* kernel_accept may block; that's fine in this thread context */
-        ret = kernel_accept(listen_sock, &newsock, 0);
-        if (ret < 0) {
-            /* If interrupted or shutting down, break cleanly */
-            if (ret == -EINTR || ret == -ERESTARTSYS || kthread_should_stop()) {
-                pr_info("tcp_server: accept interrupted or thread stopping: %d\n", ret);
+        ksocket_t client = NULL;
+        struct sockaddr_in peer;
+        int peerlen = sizeof(peer);
+        int n;
+        char *buf;
+
+        /* Accept (blocking) */
+        client = kaccept(listen_sock, (struct sockaddr *)&peer, &peerlen);
+        if (IS_ERR_OR_NULL(client)) {
+            long err = IS_ERR(client) ? PTR_ERR(client) : -ENOTCONN;
+
+            /* Exit cleanly if we’re stopping */
+            if (kthread_should_stop())
                 break;
-            }
-            pr_warn("tcp_server: kernel_accept returned: %d - sleeping then retry\n", ret);
+
+            /* Transient failure: back off a bit and retry */
+            pr_debug("tcp_server: kaccept() error ptr=%p err=%ld; retrying\n",
+                     client, err);
             msleep(100);
             continue;
         }
 
-        if (!newsock) {
-            pr_warn("tcp_server: kernel_accept returned NULL newsock\n");
-            msleep(100);
+        pr_info("tcp_server: accepted client=%p\n", client);
+
+        /* One recv then close (demo behavior) */
+        buf = kmalloc(RECV_BUF_SZ, GFP_KERNEL);
+        if (!buf) {
+            pr_err("tcp_server: kmalloc failed\n");
+            kclose(client);
             continue;
         }
 
-        pr_info("tcp_server: accepted newsock=%p newsock->sk=%p\n", newsock, newsock->sk);
-
-        /* Receive a single message (blocking) and then close */
-        {
-            char *buf = kmalloc(RECV_BUF_SZ, GFP_KERNEL);
-            if (!buf) {
-                pr_err("tcp_server: kmalloc failed\n");
-                sock_release(newsock);
-                newsock = NULL;
-                continue;
-            }
-
-            {
-                struct kvec iov = { .iov_base = buf, .iov_len = RECV_BUF_SZ - 1 };
-                struct msghdr msg;
-                int n;
-
-                memset(&msg, 0, sizeof(msg));
-                n = kernel_recvmsg(newsock, &msg, &iov, 1, RECV_BUF_SZ - 1, 0);
-                if (n > 0) {
-                    buf[n] = '\0';
-                    pr_info("tcp_server: received (%d bytes): %s\n", n, buf);
-                } else {
-                    pr_info("tcp_server: kernel_recvmsg returned %d\n", n);
-                }
-            }
-
-            kfree(buf);
+        n = krecv(client, buf, RECV_BUF_SZ - 1, 0);
+        if (n > 0) {
+            buf[n] = '\0';
+            pr_info("tcp_server: received (%d bytes): %s\n", n, buf);
+        } else {
+            pr_info("tcp_server: krecv() returned %d\n", n);
         }
 
-        /* close connection */
-        sock_release(newsock);
-        newsock = NULL;
+        kfree(buf);
+        kclose(client);
     }
 
-    /* cleanup listening socket */
+    /* Cleanup listening socket */
     if (listen_sock) {
         pr_info("tcp_server: closing listen socket %p\n", listen_sock);
-        sock_release(listen_sock);
+        kclose(listen_sock);
         listen_sock = NULL;
     }
 
@@ -139,20 +135,18 @@ static int __init tcp_server_init(void) {
 static void __exit tcp_server_exit(void) {
     pr_info("tcp_server: Unloading\n");
 
-    /* Shutdown listening socket to interrupt accept */
+    /* Ask the listen socket to shut down so accept/recv unblocks */
     if (listen_sock) {
-        kernel_sock_shutdown(listen_sock, SHUT_RDWR);
+        kshutdown(listen_sock, 2 /* SHUT_RDWR */);
     }
 
-    /* Stop the thread (waits for it to exit) */
     if (server_thread) {
         kthread_stop(server_thread);
         server_thread = NULL;
     }
 
-    /* If still present, release listen socket (thread may have done it) */
     if (listen_sock) {
-        sock_release(listen_sock);
+        kclose(listen_sock);
         listen_sock = NULL;
     }
 
@@ -164,4 +158,4 @@ module_exit(tcp_server_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Mephistolist");
-MODULE_DESCRIPTION("Kernel-space TCP server using ksocket");
+MODULE_DESCRIPTION("Kernel-space TCP server using ksocket wrapper API");
