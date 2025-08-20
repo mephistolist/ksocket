@@ -4,13 +4,9 @@
 #include <linux/kthread.h>
 #include <linux/delay.h>
 #include <linux/in.h>
-#include <linux/net.h>
 #include <linux/string.h>
-#include <linux/slab.h>
-#include <linux/time.h>
-#include <linux/errno.h>
-#include <linux/errno.h>
-#include <linux/uaccess.h>
+#include <linux/net.h>      /* socket families, SOCK_STREAM */
+#include <linux/socket.h>   /* socket options */
 #include "ksocket.h"
 
 #define SERVER_PORT 4444
@@ -35,7 +31,7 @@ static int udp_client_fn(void *data) {
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(SERVER_PORT);
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP); // <- use your exported symbol
 
     // Send message
     ret = ksendto(sock, (void *)message, strlen(message), 0,
@@ -48,13 +44,13 @@ static int udp_client_fn(void *data) {
 
     printk(KERN_INFO "[udp_client] Sent: %s\n", message);
 
-    // Non-blocking receive with timeout
+    // Try receive (non-blocking with manual timeout loop)
     {
         unsigned long timeout = jiffies + msecs_to_jiffies(TIMEOUT_MS);
         int addr_len = sizeof(server_addr);
         ret = -EAGAIN;
 
-        while (time_before(jiffies, timeout)) {
+        while (time_before(jiffies, timeout) && !kthread_should_stop()) {
             ret = krecvfrom(sock, buffer, sizeof(buffer) - 1, MSG_DONTWAIT,
                             (struct sockaddr *)&server_addr, &addr_len);
             if (ret >= 0) {
@@ -66,7 +62,7 @@ static int udp_client_fn(void *data) {
         }
 
         if (ret < 0)
-            printk(KERN_WARNING "[udp_client] No response from server (timeout or unreachable)\n");
+            printk(KERN_WARNING "[udp_client] No response from server (timeout)\n");
     }
 
     kclose(sock);
@@ -94,4 +90,4 @@ module_exit(udp_client_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Mephistolist");
-MODULE_DESCRIPTION("Simple UDP Client using ksocket");
+MODULE_DESCRIPTION("Simple UDP Client using ksocket API");
