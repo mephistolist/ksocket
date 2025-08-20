@@ -5,8 +5,8 @@
 #include <linux/delay.h>
 #include <linux/in.h>
 #include <linux/string.h>
-#include <linux/net.h>      /* socket families, SOCK_STREAM */
-#include <linux/socket.h>   /* socket options */
+#include <linux/net.h>     
+#include <linux/socket.h>  
 #include "ksocket.h"
 
 #define SERVER_PORT 4444
