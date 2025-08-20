@@ -6,9 +6,9 @@
 #include <linux/slab.h>
 #include <linux/err.h>
 #include <linux/in.h>
-#include <linux/net.h>      /* socket families, SOCK_STREAM */
-#include <linux/socket.h>   /* socket options */
-#include "ksocket.h"   /* <-- your wrapper API */
+#include <linux/net.h>     
+#include <linux/socket.h>   
+#include "ksocket.h"   
 
 #define SERVER_PORT 12345
 #define BACKLOG     5
